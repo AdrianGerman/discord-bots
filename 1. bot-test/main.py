@@ -14,6 +14,27 @@ async def test(ctx, *arg):
     await ctx.send(" ".join(arg))
 
 
+@bot.command()
+async def poke(ctx, arg):
+    try:
+        arg.split(" ", 1)[0]
+        result = requests.get(f"https://pokeapi.co/api/v2/pokemon/{arg}")
+        if result.text == "Not Found":
+            await ctx.send("Pokemon no encontrado :(.")
+        else:
+            image_url = result.json()["sprites"]["front_default"]
+            print(image_url)
+            await ctx.send(image_url)
+    except Exception as e:
+        print(f"Error: {e}")
+
+
+@poke.error
+async def error_type(ctx, error):
+    if isinstance(error, commands.errors.MissingRequiredArgument):
+        await ctx.send("Por favor, ingresa el nombre del pokemon que quieres buscar.")
+
+
 @bot.event
 async def on_ready():
     print(f"Estamos dentro! {bot.user}")
