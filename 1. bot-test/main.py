@@ -17,7 +17,7 @@ async def test(ctx, *arg):
 @bot.command()
 async def poke(ctx, arg):
     try:
-        arg.split(" ", 1)[0]
+        arg.split(" ", 1)[0].lower()
         result = requests.get(f"https://pokeapi.co/api/v2/pokemon/{arg}")
         if result.text == "Not Found":
             await ctx.send("Pokemon no encontrado :(.")
@@ -38,6 +38,12 @@ async def error_type(ctx, error):
 @bot.event
 async def on_ready():
     print(f"Estamos dentro! {bot.user}")
+
+
+@bot.command()
+async def clean(ctx):
+    await ctx.channel.purge(limit=100)
+    await ctx.send("Limpieza completa! :broom:", delete_after=5)
 
 
 bot.run(secret.TOKEN)
