@@ -108,3 +108,17 @@ class TwitchClient:
             js = await r.json()
             data = js.get("data", [])
             return data[0] if data else None
+
+
+# ----------------- State -----------------
+class StreamState:
+    def __init__(self):
+        self.live = False
+        self.stream_id: Optional[str] = (
+            None  # para evitar duplicados en el mismo directo
+        )
+
+
+state = StreamState()
+http_session: aiohttp.ClientSession | None = None
+twitch: TwitchClient | None = None
