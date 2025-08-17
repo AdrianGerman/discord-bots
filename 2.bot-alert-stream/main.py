@@ -122,3 +122,24 @@ class StreamState:
 state = StreamState()
 http_session: aiohttp.ClientSession | None = None
 twitch: TwitchClient | None = None
+
+
+# ----------------- Tasks -----------------
+@tasks.loop(seconds=CHECK_INTERVAL_SECONDS)
+async def check_twitch():
+    if not twitch or not TWITCH_USER_LOGIN or not ANNOUNCE_CHANNEL_ID:
+        return
+
+    try:
+        stream = await twitch.get_stream(TWITCH_USER_LOGIN)
+    except Exception as e:
+        log.warning(f"Error checking Twitch: {e}")
+        return
+
+    if stream:
+        stream_id = stream.get("id")
+        title = stream.get("title", "¡En directo!")
+        game_name = stream.get("game_name", "")
+        thumbnail_url = stream.get("thumbnail_url", "")
+        viewer_count = stream.get("viewer_count", 0)
+        url = f"https://twitch.tv/{TWITCH_USER_LOGIN}"
