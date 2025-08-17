@@ -37,3 +37,30 @@ bot = discord.Bot(intents=intents)
 
 
 # ----------------- Twitch Client -----------------
+class TwitchClient:
+    def __init__(
+        self, client_id: str, client_secret: str, session: aiohttp.ClientSession
+    ):
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.session = session
+        self._app_token: Optional[str] = None
+        self._token_type: Optional[str] = None
+
+    async def ensure_token(self):
+        if self._app_token is None:
+            await self.refresh_token()
+
+    async def refresh_token(self):
+        url = "https://id.twitch.tv/oauth2/token"
+        data = {
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+            "grant_type": "client_credentials",
+        }
+        async with self.session.post(url, data=data, timeout=20) as r:
+            r.raise_for_status()
+            js = await r.json()
+            self._app_token = js["access_token"]
+            self._token_type = js.get("token_type", "bearer")
+            log.info("Twitch app token refreshed.")
