@@ -64,3 +64,47 @@ class TwitchClient:
             self._app_token = js["access_token"]
             self._token_type = js.get("token_type", "bearer")
             log.info("Twitch app token refreshed.")
+
+    async def get_stream(self, user_login: str) -> Optional[dict]:
+        """Devuelve dict con datos del stream si está en vivo; None si está offline."""
+        await self.ensure_token()
+        headers = {
+            "Client-ID": self.client_id,
+            "Authorization": f"Bearer {self._app_token}",
+        }
+        params = {"user_login": user_login}
+        url = "https://api.twitch.tv/helix/streams"
+        async with self.session.get(
+            url, headers=headers, params=params, timeout=20
+        ) as r:
+            if r.status == 401:
+                # Token expirado → refrescar y reintentar una vez
+                await self.refresh_token()
+                headers["Authorization"] = f"Bearer {self._app_token}"
+                async with self.session.get(
+                    url, headers=headers, params=params, timeout=20
+                ) as r2:
+                    r2.raise_for_status()
+                    js2 = await r2.json()
+                    data = js2.get("data", [])
+                    return data[0] if data else None
+            r.raise_for_status()
+            js = await r.json()
+            data = js.get("data", [])
+            return data[0] if data else None
+
+    async def get_user(self, user_login: str) -> Optional[dict]:
+        await self.ensure_token()
+        headers = {
+            "Client-ID": self.client_id,
+            "Authorization": f"Bearer {self._app_token}",
+        }
+        params = {"login": user_login}
+        url = "https://api.twitch.tv/helix/users"
+        async with self.session.get(
+            url, headers=headers, params=params, timeout=20
+        ) as r:
+            r.raise_for_status()
+            js = await r.json()
+            data = js.get("data", [])
+            return data[0] if data else None
