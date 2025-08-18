@@ -143,3 +143,44 @@ async def check_twitch():
         thumbnail_url = stream.get("thumbnail_url", "")
         viewer_count = stream.get("viewer_count", 0)
         url = f"https://twitch.tv/{TWITCH_USER_LOGIN}"
+
+        if not state.live or state.stream_id != stream_id:
+            # se acaba de iniciar un directo (o nuevo id por reinicio)
+            state.live = True
+            state.stream_id = stream_id
+
+            channel = bot.get_channel(ANNOUNCE_CHANNEL_ID)
+            if channel:
+                mention = f"<@&{ANNOUNCE_ROLE_ID}>" if ANNOUNCE_ROLE_ID else ""
+                embed = discord.Embed(
+                    title=title,
+                    description=f"{TWITCH_USER_LOGIN} está **en directo** {(f'jugando a {game_name}' if game_name else '')}.\n\n**¡Entra!** → {url}",
+                )
+                embed.add_field(name="Viewers", value=str(viewer_count))
+                if thumbnail_url:
+                    # reemplaza dimensiones por 1280x720 para obtener una imagen
+                    embed.set_image(
+                        url=thumbnail_url.replace("{width}", "1280").replace(
+                            "{height}", "720"
+                        )
+                    )
+
+                await channel.send(
+                    content=f"{mention} 📣 ¡Directo iniciado!", embed=embed
+                )
+                log.info("Anuncio enviado.")
+    else:
+        if state.live:
+            # Se acaba de terminar el directo
+            state.live = False
+            state.stream_id = None
+            channel = bot.get_channel(ANNOUNCE_CHANNEL_ID)
+            if channel:
+                await channel.send("🔴 El directo ha terminado. ¡Gracias por pasarte!")
+                log.info("Mensaje de fin enviado.")
+
+
+@check_twitch.before_loop
+async def before_check():
+    await bot.wait_until_ready()
+    log.info("check_twitch task starting...")
