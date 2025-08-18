@@ -196,3 +196,28 @@ async def stream_config(ctx: discord.ApplicationContext):
         f"Rol a mencionar: `{ANNOUNCE_ROLE_ID or 'Ninguno'}`"
     )
     await ctx.respond(msg, ephemeral=True)
+
+
+@bot.slash_command(
+    description="Comprueba ahora mismo si hay directo y (si aplica) anuncia."
+)
+async def stream_check(ctx: discord.ApplicationContext):
+    await ctx.defer(ephemeral=True)
+    try:
+        stream = await twitch.get_stream(TWITCH_USER_LOGIN)
+        if stream:
+            state.live = True
+            state.stream_id = stream.get("id")
+            ch = bot.get_channel(ANNOUNCE_CHANNEL_ID)
+            if ch:
+                url = f"https://twitch.tv/{TWITCH_USER_LOGIN}"
+                title = stream.get("title", "¡En directo!")
+                embed = discord.Embed(title=title, description=f"Live ahora → {url}")
+                await ch.send(embed=embed)
+            await ctx.followup.send(
+                "Detectado LIVE y anunciado (si había canal).", ephemeral=True
+            )
+        else:
+            await ctx.followup.send("No hay directo ahora mismo.", ephemeral=True)
+    except Exception as e:
+        await ctx.followup.send(f"Error: {e}", ephemeral=True)
