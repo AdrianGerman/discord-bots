@@ -184,3 +184,15 @@ async def check_twitch():
 async def before_check():
     await bot.wait_until_ready()
     log.info("check_twitch task starting...")
+
+
+# ----------------- Slash Commands útiles -----------------
+@bot.slash_command(description="Muestra el estado de configuración actual.")
+async def stream_config(ctx: discord.ApplicationContext):
+    msg = (
+        f"Canal anuncios: `{ANNOUNCE_CHANNEL_ID}`\n"
+        f"Twitch user: `{TWITCH_USER_LOGIN}`\n"
+        f"Intervalo: `{CHECK_INTERVAL_SECONDS}s`\n"
+        f"Rol a mencionar: `{ANNOUNCE_ROLE_ID or 'Ninguno'}`"
+    )
+    await ctx.respond(msg, ephemeral=True)
