@@ -221,3 +221,25 @@ async def stream_check(ctx: discord.ApplicationContext):
             await ctx.followup.send("No hay directo ahora mismo.", ephemeral=True)
     except Exception as e:
         await ctx.followup.send(f"Error: {e}", ephemeral=True)
+
+
+# ----------------- Run -----------------
+@bot.event
+async def on_ready():
+    log.info(f"Conectado como {bot.user} (latency {bot.latency*1000:.0f}ms)")
+    if not check_twitch.is_running():
+        check_twitch.start()
+
+
+async def main():
+    global http_session, twitch
+    http_session = aiohttp.ClientSession()
+    twitch = TwitchClient(TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET, http_session)
+    try:
+        await bot.start(BOT_TOKEN)
+    finally:
+        await http_session.close()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
