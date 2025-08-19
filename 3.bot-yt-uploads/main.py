@@ -28,3 +28,21 @@ RSS_URL = f"https://www.youtube.com/feeds/videos.xml?channel_id={YT_CHANNEL_ID}"
 
 state_last_video_id: Optional[str] = None
 http_session: Optional[aiohttp.ClientSession] = None
+
+
+async def fetch_latest_video():
+    """Devuelve (video_id, title, url, published) del video más reciente, o None si no hay."""
+    async with http_session.get(RSS_URL, timeout=20) as r:
+        r.raise_for_status()
+        text = await r.text()
+
+    feed = feedparser.parse(text)
+    if not feed.entries:
+        return None
+
+    e = feed.entries[0]
+    video_id = (e.get("yt_videoid") or e.get("id") or "").split(":")[-1]
+    title = e.get("title", "Nuevo video")
+    link = e.get("link", f"https://www.youtube.com/watch?v={video_id}")
+    published = e.get("published", "")
+    return video_id, title, link, published
