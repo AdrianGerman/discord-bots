@@ -87,3 +87,29 @@ async def check_youtube():
             )
             await ch.send(embed=embed)
             log.info(f"Anunciado video nuevo: {video_id}")
+
+
+@check_youtube.before_loop
+async def before_loop():
+    await bot.wait_until_ready()
+    log.info("Iniciando tarea check_youtube...")
+
+
+@bot.event
+async def on_ready():
+    log.info(f"Conectado como {bot.user} (latency {bot.latency*1000:.0f}ms)")
+    if not check_youtube.is_running():
+        check_youtube.start()
+
+
+async def main():
+    global http_session
+    http_session = aiohttp.ClientSession()
+    try:
+        await bot.start(BOT_TOKEN)
+    finally:
+        await http_session.close()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
