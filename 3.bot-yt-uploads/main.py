@@ -46,3 +46,44 @@ async def fetch_latest_video():
     link = e.get("link", f"https://www.youtube.com/watch?v={video_id}")
     published = e.get("published", "")
     return video_id, title, link, published
+
+
+@tasks.loop(minutes=CHECK_INTERVAL_MINUTES)
+async def check_youtube():
+    global state_last_video_id
+    if not ANNOUNCE_CHANNEL_ID or not YT_CHANNEL_ID:
+        return
+
+    try:
+        latest = await fetch_latest_video()
+    except Exception as e:
+        log.warning(f"Error leyendo feed de YouTube: {e}")
+        return
+
+    if not latest:
+        return
+
+    video_id, title, link, published = latest
+
+    # Primera ejecución: memoriza el último video y no anuncies (para no spamear con videos antiguos).
+    if state_last_video_id is None:
+        state_last_video_id = video_id
+        log.info(f"Inicializado con último video {video_id}")
+        return
+
+    if video_id != state_last_video_id:
+        state_last_video_id = video_id
+        ch = bot.get_channel(ANNOUNCE_CHANNEL_ID)
+        if ch:
+            embed = discord.Embed(
+                title=title,
+                description=f"¡Nuevo video en el canal! 🎬\n{link}",
+            )
+            # Miniatura estándar de YouTube:
+            thumb = f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg"
+            embed.set_thumbnail(url=thumb)
+            embed.add_field(
+                name="Publicado", value=published or "hace poco", inline=True
+            )
+            await ch.send(embed=embed)
+            log.info(f"Anunciado video nuevo: {video_id}")
